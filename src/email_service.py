@@ -465,7 +465,7 @@ def _random_dots(username: str) -> str:
     """在用戶名中隨機插入點號（Gmail dot trick）
     
     Gmail 忽略用戶名中的點，但 OpenAI 視為不同郵箱。
-    例: junjiecheng9065 → j.unji.echeng.9065
+    例: johndoe1234 → j.ohnd.oe.1234
     """
     if len(username) < 2:
         return username

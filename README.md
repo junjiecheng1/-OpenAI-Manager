@@ -1,125 +1,112 @@
-# OpenAI 自动注册工具
+# OpenAI Account Manager
 
-一套完整的 OpenAI 账号自动注册方案，包含邮箱验证码接收（Cloudflare Worker）和注册自动化（Python）。
+一套完整的 OpenAI 帳號自動化管理方案，包含自動註冊、Session 拉取、Plus 開通、gzyi 同步。
 
-## 项目结构
+## 功能
+
+- **自動註冊** — Playwright 瀏覽器自動化註冊 OpenAI 帳號
+- **郵箱驗證** — 支持 Outlook IMAP (OAuth2)、Gmail IMAP、Cloudflare Worker
+- **Session 拉取** — 自動登入 ChatGPT 獲取 Session Token
+- **Plus 開通** — 卡密自動兌換 Plus 訂閱
+- **gzyi 同步** — OAuth 授權後自動推送到 gzyi.top 管理平台
+- **Dashboard** — Web 管理面板，帳號/卡密/巡檢/gzyi 一站式管理
+- **自動巡檢** — 定時檢查帳號數量，不足自動補充
+
+## 快速開始
+
+### 本地運行
+
+```bash
+# 1. 複製配置
+cp .env.example .env
+# 編輯 .env，填入你的配置
+
+# 2. 安裝依賴
+uv sync
+playwright install chromium
+
+# 3. 啟動服務
+uv run python server.py
+
+# Dashboard: http://localhost:8900
+```
+
+### Docker 部署
+
+```bash
+# 1. 複製配置
+cp .env.example .env
+# 編輯 .env
+
+# 2. 啟動
+docker compose up -d
+
+# Dashboard: http://localhost:8900
+# 瀏覽器監控 (noVNC): http://localhost:6080/vnc.html (密碼: openai123)
+```
+
+## 項目結構
 
 ```
-openai-register/
-├── worker/                  # Cloudflare Email OTP Worker（已部署）
-│   ├── src/index.js         # Worker 主逻辑：收邮件 → 提取验证码 → 存 KV
-│   ├── wrangler.toml        # Wrangler 配置（KV binding）
-│   ├── test/otp.test.js     # 单元测试
-│   └── .dev.vars.example    # 环境变量模板
-│
-├── src/                     # Python 注册脚本
-│   ├── registrar.py         # 核心注册流程（OpenAI OAuth）
-│   ├── email_service.py     # 验证码获取（Worker API / IMAP）
-│   ├── oauth.py             # OAuth PKCE 客户端
-│   ├── config.py            # 配置管理
-│   ├── utils.py             # 工具函数
-│   └── logger.py            # 日志
-│
-├── main.py                  # 入口：批量注册 CLI
-├── .env                     # 运行配置（不提交）
-├── .env.example             # 配置模板
-└── pyproject.toml           # Python 依赖
+├── server.py                # FastAPI 入口
+├── routes/                  # API 路由
+│   ├── accounts.py          # 帳號管理
+│   ├── patrol.py            # 自動巡檢
+│   ├── gzyi.py              # gzyi 同步
+│   ├── session_service.py   # Session 拉取
+│   └── shared.py            # 共享工具
+├── src/                     # 核心邏輯
+│   ├── browser_registrar.py # 瀏覽器自動註冊
+│   ├── browser_utils.py     # 瀏覽器操作工具
+│   ├── chatgpt_login.py     # ChatGPT 登入
+│   ├── account_authorizer.py# OAuth 授權抽象
+│   ├── email_service.py     # 郵箱驗證碼
+│   ├── outlook_provider.py  # Outlook IMAP OAuth2
+│   ├── plus_upgrade.py      # Plus 開通
+│   ├── oauth.py             # OAuth PKCE
+│   └── config.py            # 配置管理
+├── static/                  # Dashboard 前端
+├── worker/                  # Cloudflare Email Worker
+├── Dockerfile               # Docker 鏡像
+├── docker-compose.yml       # Docker Compose
+└── .env.example             # 配置模板
 ```
 
 ## 工作流程
 
 ```
-1. 脚本生成随机邮箱 abc123@tweet.net.cn
-2. 通过 OpenAI API 提交注册（邮箱 + 随机密码）
-3. OpenAI 发验证码到 abc123@tweet.net.cn
-4. Cloudflare Email Routing 收到邮件 → 推送到 Worker
-5. Worker 提取验证码 → 存入 KV（自动过期）
-6. 脚本轮询 Worker API /otp/consume 取回验证码
-7. 提交验证码 → 完成注册 → 保存 Token
+全流程: 註冊 → 關閉瀏覽器 → 拉 Session → 開通 Plus → 導入 gzyi
 ```
 
-## 快速开始
+## 環境配置
 
-### 1. 配置 .env
+參見 `.env.example`，支持以下郵箱模式：
 
-```bash
-cp .env.example .env
-# 编辑 .env，填入你的配置
-```
+| 模式 | 說明 |
+|------|------|
+| **Outlook Pool** | Outlook OAuth2 IMAP，推薦 |
+| **Gmail IMAP** | Gmail +tag 別名，需應用密碼 |
+| **Worker** | Cloudflare Email Worker 收驗證碼 |
 
-### 2. 安装 Python 依赖
-
-```bash
-uv sync
-```
-
-### 3. 运行注册
+## Worker API
 
 ```bash
-# 测试单次注册
-uv run python main.py --once
+# 健康檢查
+curl https://your-worker.workers.dev/health
 
-# 注册 5 个账号
-uv run python main.py -c 5
-
-# 使用代理注册 10 个账号
-uv run python main.py -p http://127.0.0.1:7890 -c 10
-
-# 无限循环注册，间隔 30-120 秒
-uv run python main.py -smin 30 -smax 120
-
-# 调试模式
-uv run python main.py --once -d
-```
-
-## Worker 管理
-
-Worker 已部署到 Cloudflare，日常不需要操作。如需修改：
-
-```bash
-cd worker
-
-# 安装依赖
-npm install
-
-# 本地测试
-npm test
-
-# 重新部署
-npx wrangler deploy
-
-# 更新 API Token
-npx wrangler secret put API_TOKEN
-
-# 更新发件人白名单
-npx wrangler secret put ALLOWED_SENDERS
-```
-
-### Worker API
-
-```bash
-# 健康检查
-curl https://email-otp-worker.junjiecheng.workers.dev/health
-
-# 查看验证码（不删除）
+# 查看驗證碼
 curl -H "Authorization: Bearer $TOKEN" \
-  "https://email-otp-worker.junjiecheng.workers.dev/otp?email=xxx@tweet.net.cn"
+  "https://your-worker.workers.dev/otp?email=xxx@yourdomain.com"
 
-# 消费验证码（读后即焚）
+# 消費驗證碼
 curl -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"email":"xxx@tweet.net.cn"}' \
-  "https://email-otp-worker.junjiecheng.workers.dev/otp/consume"
+  -d '{"email":"xxx@yourdomain.com"}' \
+  "https://your-worker.workers.dev/otp/consume"
 ```
 
-## 输出文件
+## 注意事項
 
-- `tokens/token_<email>_<timestamp>.json` — Token 信息
-- `tokens/accounts.txt` — 帐号记录（格式：`email----password`）
-
-## 注意事项
-
-- 需要非 CN/HK IP 的代理
-- 建议注册间隔 30-120 秒，避免 IP 被封
+- 需要海外 IP
 - 不要把 `.env` 提交到版本控制
-- 本工具仅供学习和研究使用
+- 本工具僅供學習和研究使用
