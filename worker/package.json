@@ -1,0 +1,16 @@
+{
+  "name": "email-otp-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --test"
+  },
+  "dependencies": {
+    "postal-mime": "^2.6.4"
+  },
+  "devDependencies": {
+    "wrangler": "^4.11.1"
+  }
+}

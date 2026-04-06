@@ -1,0 +1,6 @@
+API_TOKEN=replace-with-a-long-random-token
+ALLOWED_SENDERS=no-reply@example.com,*@accounts.example.com
+OTP_TTL_SECONDS=300
+OTP_CODE_REGEX=
+REJECT_UNTRUSTED_SENDERS=false
+ALLOW_ALPHANUMERIC_CODES=false

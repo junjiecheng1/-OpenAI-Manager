@@ -1,0 +1,9 @@
+name = "email-otp-worker"
+main = "src/index.js"
+compatibility_date = "2026-04-05"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "OTP_CODES"
+id = "9e87cc8740ee48fd9a1c49f0cf571af8"
+preview_id = "2daeef2f08974805b857ac1b02bd7287"

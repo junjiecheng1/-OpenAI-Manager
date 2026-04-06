@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenAI 帳號管理</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <h1><i data-lucide="zap" style="width:16px;height:16px;display:inline;vertical-align:-2px;"></i> OpenAI Manager</h1>
+      <div class="subtitle">帳號管理控制台</div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="switchTab('accounts')">
+        <i data-lucide="list" class="nav-icon"></i> 帳號列表
+        <span class="nav-badge" id="nav-accounts">-</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('outlook')">
+        <i data-lucide="mail" class="nav-icon"></i> Outlook 郵箱池
+        <span class="nav-badge" id="nav-outlook">-</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('cdkeys')">
+        <i data-lucide="ticket" class="nav-icon"></i> 卡密管理
+      </button>
+      <button class="nav-item" onclick="switchTab('gzyi')">
+        <i data-lucide="server" class="nav-icon"></i> gzyi 帳號
+        <span class="nav-badge" id="nav-gzyi">-</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('patrol')">
+        <i data-lucide="shield-check" class="nav-icon"></i> 自動巡檢
+        <span class="nav-badge" id="nav-patrol">OFF</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost" style="width:100%;" onclick="loadAll()">
+        <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> 刷新數據
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Stats -->
+    <div class="stats-row" id="stats">
+      <div class="stat">
+        <div class="stat-label">帳號</div>
+        <div class="stat-value accent" id="s-accounts">-<span class="stat-sub">/- plus</span></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">卡密</div>
+        <div class="stat-value green" id="s-cdkeys">-<span class="stat-sub">/- 可用</span></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Outlook</div>
+        <div class="stat-value blue" id="s-outlook">-<span class="stat-sub">/- 可用</span></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">gzyi</div>
+        <div class="stat-value amber" id="s-gzyi">-<span class="stat-sub">/- 可用</span></div>
+      </div>
+    </div>
+
+    <!-- Accounts Panel -->
+    <div class="panel active" id="panel-accounts">
+      <div class="card">
+        <div class="card-header">
+          <h3>所有帳號</h3>
+          <button class="btn btn-primary btn-sm" onclick="showRegisterModal()">批量註冊</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>郵箱</th>
+                <th>密碼</th>
+                <th>Plan</th>
+                <th>Session</th>
+                <th>gzyi</th>
+                <th>創建時間</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="accounts-body">
+              <tr><td colspan="7" class="empty"><div class="msg">載入中...</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Outlook Pool Panel -->
+    <div class="panel" id="panel-outlook">
+      <div class="card">
+        <div class="card-header">
+          <h3>Outlook 郵箱池</h3>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="showExtractModal()">卡密提取</button>
+            <button class="btn btn-ghost btn-sm" onclick="showOutlookImportModal()">手動匯入</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>郵箱</th><th>密碼</th><th>狀態</th></tr>
+            </thead>
+            <tbody id="outlook-body">
+              <tr><td colspan="3" class="empty"><div class="msg">暫無郵箱</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CDKeys Panel -->
+    <div class="panel" id="panel-cdkeys">
+      <div class="card">
+        <div class="card-header">
+          <h3>卡密庫存</h3>
+          <button class="btn btn-primary btn-sm" onclick="showImportModal()">導入卡密</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>卡密</th><th>禮品名</th><th>綁定帳號</th><th>狀態</th></tr>
+            </thead>
+            <tbody id="cdkeys-body">
+              <tr><td colspan="4" class="empty"><div class="msg">載入中...</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Patrol Panel -->
+    <div class="panel" id="panel-patrol">
+      <div class="card">
+        <div class="card-header">
+          <h3>自動巡檢</h3>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm" id="btn-patrol-toggle" onclick="togglePatrol()">啟用</button>
+            <button class="btn btn-ghost btn-sm" id="btn-patrol-run" onclick="runPatrolNow()">立即執行</button>
+            <button class="btn btn-ghost btn-sm" id="btn-register-one" onclick="registerOneFull()">➕ 註冊一個</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="patrol-grid">
+            <div class="patrol-metric">
+              <div class="patrol-label">Plus 帳號</div>
+              <div class="patrol-value" id="patrol-plus">-/-</div>
+            </div>
+            <div class="patrol-metric">
+              <div class="patrol-label">gzyi 可用</div>
+              <div class="patrol-value" id="patrol-gzyi">-/-</div>
+            </div>
+            <div class="patrol-metric">
+              <div class="patrol-label">巡檢間隔</div>
+              <div class="patrol-value" id="patrol-interval">30 min</div>
+            </div>
+            <div class="patrol-metric">
+              <div class="patrol-label">最近執行</div>
+              <div class="patrol-value" id="patrol-lastrun">未執行</div>
+            </div>
+          </div>
+          <div id="patrol-result" style="margin-top:16px;font-size:13px;color:var(--text-secondary);"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- gzyi Panel -->
+    <div class="panel" id="panel-gzyi">
+      <div class="card">
+        <div class="card-header">
+          <h3>gzyi 帳號</h3>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>帳號</th>
+                <th>狀態</th>
+                <th>小時額度</th>
+                <th>周額度</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="gzyi-details-body">
+              <tr><td colspan="5" class="empty"><div class="msg">載入中...</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Activity Log -->
+<div class="activity-log" id="activity-log">
+  <div class="activity-header" onclick="toggleLog()">
+    <i data-lucide="terminal" style="width:14px;height:14px;"></i>
+    <span>操作日誌</span>
+    <span id="log-badge" class="log-badge" style="display:none;">0</span>
+    <span class="toggle" id="log-toggle">▲</span>
+  </div>
+  <div class="activity-body" id="activity-body">
+    <div id="log-entries"></div>
+  </div>
+</div>
+<!-- Register Modal -->
+<div class="modal-overlay" id="register-modal">
+  <div class="modal">
+    <h3>批量註冊 OpenAI 帳號</h3>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">後台自動執行，每次最多 10 個。進度在底部日誌查看。</p>
+    <div class="form-group">
+      <label class="form-label">註冊數量</label>
+      <input type="number" class="form-input" id="reg-count" value="1" min="1" max="10" style="width:120px;">
+    </div>
+    <div class="form-group">
+      <label class="form-checkbox">
+        <input type="checkbox" id="reg-headed" checked>
+        <span>顯示瀏覽器窗口（推薦，可過 Cloudflare）</span>
+      </label>
+    </div>
+    <div id="reg-result"></div>
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="closeRegisterModal()">取消</button>
+      <button class="btn btn-primary" onclick="startRegister()" id="btn-register">開始註冊</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import CDKey Modal -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal">
+    <h3>導入卡密</h3>
+    <div class="form-group">
+      <label class="form-label">每行一張卡密</label>
+      <textarea class="form-input" id="import-keys" rows="8" placeholder="7VTW6-JJONS-C5EDH&#10;EQQIY-8NWDZ-L045E&#10;..."></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="closeImportModal()">取消</button>
+      <button class="btn btn-primary" onclick="importCdkeys()">導入</button>
+    </div>
+  </div>
+</div>
+
+<!-- Extract Cards Modal -->
+<div class="modal-overlay" id="extract-modal">
+  <div class="modal">
+    <h3>98faka 卡密提取</h3>
+    <div class="form-group">
+      <label class="form-label">每行一個卡號</label>
+      <textarea class="form-input" id="extract-codes" rows="8" placeholder="F3A81812FC736FD1&#10;8350256BFE443AEF&#10;..."></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="closeExtractModal()">取消</button>
+      <button class="btn btn-primary" onclick="extractCards()">提取</button>
+    </div>
+  </div>
+</div>
+
+<!-- Outlook Import Modal -->
+<div class="modal-overlay" id="outlook-import-modal">
+  <div class="modal">
+    <h3>手動匯入 Outlook</h3>
+    <div class="form-group">
+      <label class="form-label">格式: 帳號----密碼----ID----Token（每行一個）</label>
+      <textarea class="form-input" id="outlook-import-text" rows="8" placeholder="user@outlook.com----password----id----token"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="closeOutlookImportModal()">取消</button>
+      <button class="btn btn-primary" onclick="importOutlookText()">匯入</button>
+    </div>
+  </div>
+</div>
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal" style="max-width:400px;">
+    <h3 id="confirm-title">確認</h3>
+    <p id="confirm-msg" style="color:var(--text-secondary);line-height:1.6;white-space:pre-line;margin:0 0 16px;"></p>
+    <div class="actions">
+      <button class="btn btn-ghost" id="confirm-cancel">取消</button>
+      <button class="btn btn-primary" id="confirm-ok">確認</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>
