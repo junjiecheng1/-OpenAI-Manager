@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  openai-manager:
+    build: .
+    container_name: openai-manager
+    restart: unless-stopped
+    ports:
+      # Dashboard
+      - "8900:8900"
+      # noVNC (瀏覽器遠程查看: http://localhost:6080/vnc.html)
+      - "6080:6080"
+    volumes:
+      # 持久化: tokens + accounts
+      - ./tokens:/app/tokens
+      # 環境配置
+      - ./.env:/app/.env:ro
+      # Outlook 郵箱池 (如果有)
+      - ./tokens/outlook_pool.jsonl:/app/tokens/outlook_pool.jsonl:ro
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TOKEN_OUTPUT_DIR=/app/tokens
+      - DISPLAY=:99
+      - VNC_PASSWORD=${VNC_PASSWORD:-openai123}
+    # Playwright 瀏覽器需要共享內存
+    shm_size: "2gb"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8900/api/patrol/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
